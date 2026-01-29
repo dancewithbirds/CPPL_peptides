@@ -22,7 +22,7 @@
             
             // DB에서 데이터 가져오기 (마치 영어 문장처럼 쉽습니다)
             let { data, error } = await supabase
-                .from('peptides')
+                .from('Peptides_under10mer')
                 .select('*')
                 .ilike('sequence', `%${query}%`); // 서열에 검색어가 포함되어 있는지 확인
 
