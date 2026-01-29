@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Peptide DB Search</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Peptide DB Search</h1>
+    <input type="text" id="searchInput" placeholder="서열을 입력하세요 (예: Ala)">
+    <button onclick="searchPeptide()">검색</button>
+
+    <div id="results"></div>
+
+    <script>
+        // Supabase 설정 (프로젝트 대시보드에서 확인 가능)
+        const SUPABASE_URL = 'https://nhlrilhujabietrwtmtb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_FtGTivKS0MIzdwoqUA-xig_OYgSND9I';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function searchPeptide() {
+            const query = document.getElementById('searchInput').value;
+            
+            // DB에서 데이터 가져오기 (마치 영어 문장처럼 쉽습니다)
+            let { data, error } = await supabase
+                .from('peptides')
+                .select('*')
+                .ilike('sequence', `%${query}%`); // 서열에 검색어가 포함되어 있는지 확인
+
+            const resultDiv = document.getElementById('results');
+            if (error) {
+                resultDiv.innerText = '에러 발생: ' + error.message;
+            } else {
+                resultDiv.innerHTML = data.map(p => 
+                    `<div style="border:1px solid #ccc; margin:10px; padding:10px;">
+                        <strong>이름:</strong> ${p.name}<br>
+                        <strong>서열:</strong> ${p.sequence}<br>
+                        <strong>분자량:</strong> ${p.mw}
+                    </div>`
+                ).join('');
+            }
+        }
+    </script>
+</body>
+</html>
