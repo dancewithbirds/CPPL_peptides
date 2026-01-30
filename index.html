@@ -1,42 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-    <title>Peptide DB Search</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peptide Inventory | Lab Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
-<body>
-    <h1>Peptide DB Search</h1>
-    <input type="text" id="searchInput" placeholder="서열을 입력하세요 (예: Ala)">
-    <button onclick="searchPeptide()">검색</button>
+<body class="bg-gray-50 min-h-screen">
 
-    <div id="results"></div>
+    <nav class="bg-blue-600 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-tight">LabInventory</h1>
+            <span class="text-sm bg-blue-700 px-3 py-1 rounded-full">Peptide DB Mode</span>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700">품목 검색</h2>
+            <div class="flex gap-2">
+                <input type="text" id="searchInput" 
+                    placeholder="펩타이드 서열 또는 이름 입력..." 
+                    class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="searchPeptide()" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700 transition">
+                    검색하기
+                </button>
+            </div>
+            <p id="statusMessage" class="mt-2 text-sm text-gray-500 italic"></p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-4 border-b font-semibold text-gray-600">ID</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">품목 이름</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">서열 (Sequence)</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">분자량 (MW)</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">위치</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody">
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-400">검색어를 입력하고 버튼을 눌러주세요.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
-        // Supabase 설정 (프로젝트 대시보드에서 확인 가능)
+        // 1. 본인의 Supabase 정보로 수정하세요
         const SUPABASE_URL = 'https://nhlrilhujabietrwtmtb.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_FtGTivKS0MIzdwoqUA-xig_OYgSND9I';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function searchPeptide() {
             const query = document.getElementById('searchInput').value;
-            
-            // DB에서 데이터 가져오기 (마치 영어 문장처럼 쉽습니다)
-            let { data, error } = await supabase
-                .from('Peptides_under10mer')
-                .select('*')
-                .ilike('sequence', `%${query}%`); // 서열에 검색어가 포함되어 있는지 확인
+            const status = document.getElementById('statusMessage');
+            const resultBody = document.getElementById('resultBody');
 
-            const resultDiv = document.getElementById('results');
-            if (error) {
-                resultDiv.innerText = '에러 발생: ' + error.message;
-            } else {
-                resultDiv.innerHTML = data.map(p => 
-                    `<div style="border:1px solid #ccc; margin:10px; padding:10px;">
-                        <strong>이름:</strong> ${p.name}<br>
-                        <strong>서열:</strong> ${p.sequence}<br>
-                        <strong>분자량:</strong> ${p.mw}
-                    </div>`
-                ).join('');
+            status.innerText = "데이터를 찾는 중입니다...";
+            resultBody.innerHTML = ''; // 이전 결과 초기화
+
+            try {
+                // 2. DB 쿼리 실행 (이름 혹은 서열에 검색어가 포함된 경우)
+                // .or()를 사용하여 이름(name)이나 서열(sequence) 둘 중 하나라도 맞으면 가져옵니다.
+                const { data, error } = await supabaseClient
+                    .from('peptides') // 테이블 이름 확인 필수
+                    .select('*')
+                    .or(`name.ilike.%${query}%,sequence.ilike.%${query}%`);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    resultBody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">일치하는 항목이 없습니다.</td></tr>';
+                    status.innerText = "검색 완료 (0건)";
+                    return;
+                }
+
+                // 3. 데이터를 표에 렌더링
+                data.forEach(item => {
+                    const row = `
+                        <tr class="hover:bg-gray-50 border-b transition">
+                            <td class="p-4 text-sm text-gray-600">${item.id}</td>
+                            <td class="p-4 font-medium text-gray-800">${item.name || 'N/A'}</td>
+                            <td class="p-4 text-sm font-mono text-blue-600 break-all">${item.sequence}</td>
+                            <td class="p-4 text-sm text-gray-600">${item.mw || '-'}</td>
+                            <td class="p-4">
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                                    ${item.location || '보관소 미정'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    resultBody.innerHTML += row;
+                });
+
+                status.innerText = `총 ${data.length}개의 결과를 찾았습니다.`;
+
+            } catch (err) {
+                console.error("Error:", err);
+                status.innerText = "오류가 발생했습니다: " + err.message;
+                alert("데이터를 불러오지 못했습니다. 콘솔을 확인하세요.");
             }
         }
     </script>
