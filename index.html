@@ -18,14 +18,14 @@
 
     <div class="container mx-auto p-6">
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 class="text-lg font-semibold mb-4 text-gray-700">품목 검색</h2>
+            <h2 class="text-lg font-semibold mb-4 text-gray-700">Search</h2>
             <div class="flex gap-2">
                 <input type="text" id="searchInput" 
                     placeholder="펩타이드 서열 또는 이름 입력..." 
                     class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button onclick="searchPeptide()" 
                     class="bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700 transition">
-                    검색하기
+                    Find
                 </button>
             </div>
             <p id="statusMessage" class="mt-2 text-sm text-gray-500 italic"></p>
@@ -36,10 +36,10 @@
                 <thead class="bg-gray-100">
                     <tr>
                         <th class="p-4 border-b font-semibold text-gray-600">ID</th>
-                        <th class="p-4 border-b font-semibold text-gray-600">품목 이름</th>
-                        <th class="p-4 border-b font-semibold text-gray-600">서열 (Sequence)</th>
-                        <th class="p-4 border-b font-semibold text-gray-600">분자량 (MW)</th>
-                        <th class="p-4 border-b font-semibold text-gray-600">위치</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">Name</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">Sequence</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">MW</th>
+                        <th class="p-4 border-b font-semibold text-gray-600">Comments</th>
                     </tr>
                 </thead>
                 <tbody id="resultBody">
@@ -70,7 +70,7 @@
                 // 2. DB 쿼리 실행 (이름 혹은 서열에 검색어가 포함된 경우)
                 // .or()를 사용하여 이름(name)이나 서열(sequence) 둘 중 하나라도 맞으면 가져옵니다.
                 const { data, error } = await supabaseClient
-                    .from('peptides') // 테이블 이름 확인 필수
+                    .from('Peptides_under10mer') // 테이블 이름 확인 필수
                     .select('*')
                     .or(`name.ilike.%${query}%,sequence.ilike.%${query}%`);
 
@@ -86,13 +86,13 @@
                 data.forEach(item => {
                     const row = `
                         <tr class="hover:bg-gray-50 border-b transition">
-                            <td class="p-4 text-sm text-gray-600">${item.id}</td>
-                            <td class="p-4 font-medium text-gray-800">${item.name || 'N/A'}</td>
-                            <td class="p-4 text-sm font-mono text-blue-600 break-all">${item.sequence}</td>
-                            <td class="p-4 text-sm text-gray-600">${item.mw || '-'}</td>
+                            <td class="p-4 text-medium text-gray-800">${item.id}</td>
+                            <td class="p-4 text-medium text-gray-800">${item.name || 'N/A'}</td>
+                            <td class="p-4 text-medium text-red-800">${item.sequence}</td>
+                            <td class="p-4 text-medium text-gray-800">${item.mw || '-'}</td>
                             <td class="p-4">
-                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                                    ${item.location || '보관소 미정'}
+                                <span class="bg-green-100 text-gray-800 text-xs px-2 py-1 rounded">
+                                    ${item.comments || '보관소 미정'}
                                 </span>
                             </td>
                         </tr>
@@ -105,7 +105,7 @@
             } catch (err) {
                 console.error("Error:", err);
                 status.innerText = "오류가 발생했습니다: " + err.message;
-                alert("데이터를 불러오지 못했습니다. 콘솔을 확인하세요.");
+                alert("데이터를 불러오지 못했습니다. 검색어를 확인하세요.");
             }
         }
     </script>
